@@ -1,44 +1,61 @@
 import QtQuick 2.15
-import QtQuick.Controls
+import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import Qt.labs.qmlmodels 1.0
+
 Pane {
     Layout.fillWidth: true
     Layout.fillHeight: true
     Layout.preferredWidth: 2
 
-    Text {
-        id: heroHeader
-        text: qsTr("top softwares running")
-    }
-
-    TableView {
+    ColumnLayout {
         anchors.fill: parent
+        spacing: 6
 
-        model: TableModel {
-            TableModelColumn { display: "name" }
-            TableModelColumn { display: "memory" }
-            TableModelColumn { display: "Storage" }
-            TableModelColumn { display: "CPU usage" }
-            TableModelColumn { display: "Action kill/suspend" }
-
-            rows: [
-                { name: "name", memory: "memory", storage: "storage", cpu:"cPU", action:"kill/suspen"    },
-                { name: "   ", memory: "memory", storage: "Storage", cpu:"CPU", action:"kill/suspen"    },
-                { name: "name", memory: "memory", storage: "Storage", cpu:"CPU", action:"kill/suspen"    },
-                { name: "name", memory: "memory", storage: "Storage", cpu:"CPU", action:"kill/suspen"    },
-                { name: "name", memory: "memory", storage: "Storage", cpu:"CPU", action:"kill/suspen"    },
-            ]
+        Text {
+            text: qsTr("Top softwares running")
+            font.pixelSize: 18
+            color: "white"
+            Layout.fillWidth: true
         }
 
-        delegate: Rectangle {
-            implicitWidth: 120
-            implicitHeight: 40
-            border.color: "lightgray"
+        TableView {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
 
-            Text {
-                text: display
-                anchors.centerIn: parent
+            columnWidthProvider: function (column) {
+                return width / 5
+            }
+
+            rowHeightProvider: function (row) {
+                return 40
+            }
+
+            model: TableModel {
+                TableModelColumn { display: "name" }
+                TableModelColumn { display: "memory" }
+                TableModelColumn { display: "storage" }
+                TableModelColumn { display: "cpu" }
+                TableModelColumn { display: "action" }
+
+                rows: [
+                    { name: "App 1", memory: "200MB", storage: "1GB", cpu: "5%", action: "Kill" },
+                    { name: "App 2", memory: "350MB", storage: "2GB", cpu: "8%", action: "Suspend" }
+                ]
+            }
+
+            delegate: Rectangle {
+                required property var model
+                height: 40
+                color: "#2b2b2b"
+                border.color: "#555"
+
+                Text {
+                    text: model.display
+                    color: "white"
+                    anchors.centerIn: parent
+                }
             }
         }
     }
