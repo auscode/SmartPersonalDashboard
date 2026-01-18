@@ -9,31 +9,29 @@ Pane {
     ColumnLayout{
         spacing: 2
 
-        Text {
-            id: time
-            text: qsTr("Time: 13:24:21")
-            color: "#ffffff"
-        }
-
-        Text {
-            id: network
-            text: qsTr("Networks Up/Down")
-            color: "#ffffff"
-        }
-        Text {
-            id: cpu
-            text: qsTr("cpu graphs and temps")
-            color: "#ffffff"
-        }
-        Text {
-            id: gpu
-            text: qsTr("gpu graphs & temps")
-            color: "#ffffff"
-        }
-        Text {
-            id: memory
-            text: qsTr("memory graphs")
-            color: "#ffffff"
-        }
+        // New metric displays bound to MetricsService context property
+    Text {
+        text: "Time: " + metrics.currentTime
+        color: "#ffffff"
     }
+    Text {
+        text: "CPU: " + metrics.cpuUsage.toFixed(1) + "%"
+        color: "#ffffff"
+    }
+    Text {
+        text: "GPU Temp: " + metrics.gpuTemp.toFixed(1) + "°C"
+        color: "#ffffff"
+    }
+    Text {
+        text: "Memory: " + metrics.memoryUsage.toFixed(1) + "%"
+        color: "#ffffff"
+    }
+    Text {
+        text: "Upload: " + metrics.uploadSpeed.toFixed(1) + " MB/s"
+        color: "#ffffff"
+    }
+    Text {
+        text: "Download: " + metrics.downloadSpeed.toFixed(1) + " MB/s"
+        color: "#ffffff"
+    }    }
 }

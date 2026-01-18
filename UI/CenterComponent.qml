@@ -40,6 +40,7 @@ Pane {
                 TableModelColumn { display: "action" }
 
                 rows: [
+                    { name: "Software", memory: "Memory", storage: "Storage", cpu: "CPU", action: "Action" },
                     { name: "App 1", memory: "200MB", storage: "1GB", cpu: "5%", action: "Kill" },
                     { name: "App 2", memory: "350MB", storage: "2GB", cpu: "8%", action: "Suspend" }
                 ]
