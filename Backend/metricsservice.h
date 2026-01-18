@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QString>
 #include <QTimer>
+#include <QVariantList>
 
 class MetricsService : public QObject {
   Q_OBJECT
@@ -15,6 +16,8 @@ class MetricsService : public QObject {
   Q_PROPERTY(double uploadSpeed READ uploadSpeed NOTIFY uploadSpeedChanged)
   Q_PROPERTY(
       double downloadSpeed READ downloadSpeed NOTIFY downloadSpeedChanged)
+  Q_PROPERTY(QVariantList drives READ drives NOTIFY drivesChanged)
+  Q_PROPERTY(QVariantList hardware READ hardware NOTIFY hardwareChanged)
 public:
   explicit MetricsService(QObject *parent = nullptr);
   QString currentTime() const;
@@ -23,6 +26,8 @@ public:
   double memoryUsage() const;
   double uploadSpeed() const;
   double downloadSpeed() const;
+  QVariantList drives() const;
+  QVariantList hardware() const;
 signals:
   void currentTimeChanged();
   void cpuUsageChanged();
@@ -30,6 +35,8 @@ signals:
   void memoryUsageChanged();
   void uploadSpeedChanged();
   void downloadSpeedChanged();
+  void drivesChanged();
+  void hardwareChanged();
 private slots:
   void updateMetrics();
 
@@ -51,12 +58,17 @@ private:
   long long m_prevTxBytes = 0;
   QDateTime m_lastNetworkUpdate;
 
+  QVariantList m_drives;
+  QVariantList m_hardware;
+
   // Helper functions to query system info
   QString fetchCurrentTime();
   double fetchCpuUsage();
   double fetchGpuTemp();
   double fetchMemoryUsage();
   void fetchNetworkSpeeds();
+  void fetchDrives();
+  void fetchHardware();
   double fetchUploadSpeed();
   double fetchDownloadSpeed();
 };

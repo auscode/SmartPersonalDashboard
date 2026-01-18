@@ -1,15 +1,20 @@
 #include "metricsservice.h"
 #include <QDateTime>
+#include <QStorageInfo>
+#include <QVariantMap>
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
 
+namespace fs = std::filesystem;
+
 MetricsService::MetricsService(QObject *parent) : QObject(parent) {
   m_lastNetworkUpdate = QDateTime::currentDateTime();
   connect(&m_timer, &QTimer::timeout, this, &MetricsService::updateMetrics);
-  m_timer.start(1000); // update every second
+  m_timer.start(2000); // update every 2 seconds for hardware
   updateMetrics();
 }
 
@@ -19,6 +24,8 @@ double MetricsService::gpuTemp() const { return m_gpuTemp; }
 double MetricsService::memoryUsage() const { return m_memoryUsage; }
 double MetricsService::uploadSpeed() const { return m_uploadSpeed; }
 double MetricsService::downloadSpeed() const { return m_downloadSpeed; }
+QVariantList MetricsService::drives() const { return m_drives; }
+QVariantList MetricsService::hardware() const { return m_hardware; }
 
 void MetricsService::updateMetrics() {
   m_currentTime = fetchCurrentTime();
@@ -30,11 +37,13 @@ void MetricsService::updateMetrics() {
   m_memoryUsage = fetchMemoryUsage();
   emit memoryUsageChanged();
 
-  // Network speeds are updated together
   fetchNetworkSpeeds();
 
   m_gpuTemp = fetchGpuTemp();
   emit gpuTempChanged();
+
+  fetchDrives();
+  fetchHardware();
 }
 
 QString MetricsService::fetchCurrentTime() {
@@ -90,7 +99,6 @@ void MetricsService::fetchNetworkSpeeds() {
   std::string line;
   long long totalRx = 0, totalTx = 0;
 
-  // Skip first two lines
   std::getline(file, line);
   std::getline(file, line);
 
@@ -102,10 +110,10 @@ void MetricsService::fetchNetworkSpeeds() {
       continue;
 
     long long rx, tx, dummy;
-    ss >> rx; // bytes
+    ss >> rx;
     for (int i = 0; i < 7; ++i)
       ss >> dummy;
-    ss >> tx; // bytes
+    ss >> tx;
 
     totalRx += rx;
     totalTx += tx;
@@ -118,7 +126,6 @@ void MetricsService::fetchNetworkSpeeds() {
     m_downloadSpeed = (totalRx - m_prevRxBytes) / (1024.0 * 1024.0) / elapsed;
     m_uploadSpeed = (totalTx - m_prevTxBytes) / (1024.0 * 1024.0) / elapsed;
 
-    // Handle overflow or first run
     if (m_downloadSpeed < 0)
       m_downloadSpeed = 0;
     if (m_uploadSpeed < 0)
@@ -133,8 +140,83 @@ void MetricsService::fetchNetworkSpeeds() {
   m_lastNetworkUpdate = now;
 }
 
+void MetricsService::fetchDrives() {
+  QVariantList driveList;
+  for (const QStorageInfo &storage : QStorageInfo::mountedVolumes()) {
+    if (storage.isValid() && storage.isReady()) {
+      if (storage.isReadOnly())
+        continue;
+
+      QVariantMap drive;
+      drive["name"] = storage.displayName();
+      drive["root"] = storage.rootPath();
+      drive["total"] = storage.bytesTotal() / (1024.0 * 1024.0 * 1024.0); // GB
+      drive["available"] =
+          storage.bytesAvailable() / (1024.0 * 1024.0 * 1024.0); // GB
+      drive["usage"] =
+          (1.0 - (double)storage.bytesAvailable() / storage.bytesTotal()) *
+          100.0;
+      driveList.append(drive);
+    }
+  }
+  if (m_drives != driveList) {
+    m_drives = driveList;
+    emit drivesChanged();
+  }
+}
+
+void MetricsService::fetchHardware() {
+  QVariantList hwList;
+  // Simple USB device detection via /sys/bus/usb/devices
+  std::string path = "/sys/bus/usb/devices";
+  if (fs::exists(path)) {
+    for (const auto &entry : fs::directory_iterator(path)) {
+      std::string devPath = entry.path().string();
+      std::ifstream prodFile(devPath + "/product");
+      std::ifstream manFile(devPath + "/manufacturer");
+
+      if (prodFile.is_open()) {
+        std::string product, manufacturer;
+        std::getline(prodFile, product);
+        std::getline(manFile, manufacturer);
+
+        if (!product.empty()) {
+          QVariantMap hw;
+          hw["name"] = QString::fromStdString(product);
+          hw["vendor"] = QString::fromStdString(manufacturer);
+          hw["type"] = "USB Device";
+          hwList.append(hw);
+        }
+      }
+    }
+  }
+
+  // Also check for input devices (peripherals)
+  std::string inputPath = "/sys/class/input";
+  if (fs::exists(inputPath)) {
+    for (const auto &entry : fs::directory_iterator(inputPath)) {
+      std::string namePath = entry.path().string() + "/device/name";
+      std::ifstream nameFile(namePath);
+      if (nameFile.is_open()) {
+        std::string name;
+        std::getline(nameFile, name);
+        if (!name.empty()) {
+          QVariantMap hw;
+          hw["name"] = QString::fromStdString(name);
+          hw["type"] = "Peripheral";
+          hwList.append(hw);
+        }
+      }
+    }
+  }
+
+  if (m_hardware != hwList) {
+    m_hardware = hwList;
+    emit hardwareChanged();
+  }
+}
+
 double MetricsService::fetchGpuTemp() {
-  // Try common thermal zones
   for (int i = 0; i < 10; ++i) {
     std::string path =
         "/sys/class/thermal/thermal_zone" + std::to_string(i) + "/temp";
@@ -148,6 +230,5 @@ double MetricsService::fetchGpuTemp() {
   return 0.0;
 }
 
-// Dummy implementations for compatibility with header if needed
 double MetricsService::fetchUploadSpeed() { return m_uploadSpeed; }
 double MetricsService::fetchDownloadSpeed() { return m_downloadSpeed; }
