@@ -2,6 +2,7 @@
 #define METRICSSERVICE_H
 
 #include <QDateTime>
+#include <QMap>
 #include <QObject>
 #include <QString>
 #include <QTimer>
@@ -18,6 +19,7 @@ class MetricsService : public QObject {
       double downloadSpeed READ downloadSpeed NOTIFY downloadSpeedChanged)
   Q_PROPERTY(QVariantList drives READ drives NOTIFY drivesChanged)
   Q_PROPERTY(QVariantList hardware READ hardware NOTIFY hardwareChanged)
+  Q_PROPERTY(QVariantList processes READ processes NOTIFY processesChanged)
 public:
   explicit MetricsService(QObject *parent = nullptr);
   QString currentTime() const;
@@ -28,6 +30,11 @@ public:
   double downloadSpeed() const;
   QVariantList drives() const;
   QVariantList hardware() const;
+  QVariantList processes() const;
+
+  Q_INVOKABLE void killProcess(int pid);
+  Q_INVOKABLE void suspendProcess(int pid, bool suspend);
+
 signals:
   void currentTimeChanged();
   void cpuUsageChanged();
@@ -37,6 +44,7 @@ signals:
   void downloadSpeedChanged();
   void drivesChanged();
   void hardwareChanged();
+  void processesChanged();
 private slots:
   void updateMetrics();
 
@@ -60,6 +68,15 @@ private:
 
   QVariantList m_drives;
   QVariantList m_hardware;
+  QVariantList m_processes;
+
+  // State for process CPU calculation
+  struct ProcessState {
+    long long utime;
+    long long stime;
+    long long total;
+  };
+  QMap<int, ProcessState> m_prevProcessStates;
 
   // Helper functions to query system info
   QString fetchCurrentTime();
@@ -69,6 +86,7 @@ private:
   void fetchNetworkSpeeds();
   void fetchDrives();
   void fetchHardware();
+  void fetchProcesses();
   double fetchUploadSpeed();
   double fetchDownloadSpeed();
 };

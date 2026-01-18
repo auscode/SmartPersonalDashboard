@@ -2,11 +2,14 @@
 #include <QDateTime>
 #include <QStorageInfo>
 #include <QVariantMap>
+#include <algorithm>
+#include <csignal>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -26,6 +29,13 @@ double MetricsService::uploadSpeed() const { return m_uploadSpeed; }
 double MetricsService::downloadSpeed() const { return m_downloadSpeed; }
 QVariantList MetricsService::drives() const { return m_drives; }
 QVariantList MetricsService::hardware() const { return m_hardware; }
+QVariantList MetricsService::processes() const { return m_processes; }
+
+void MetricsService::killProcess(int pid) { ::kill(pid, SIGKILL); }
+
+void MetricsService::suspendProcess(int pid, bool suspend) {
+  ::kill(pid, suspend ? SIGSTOP : SIGCONT);
+}
 
 void MetricsService::updateMetrics() {
   m_currentTime = fetchCurrentTime();
@@ -44,6 +54,7 @@ void MetricsService::updateMetrics() {
 
   fetchDrives();
   fetchHardware();
+  fetchProcesses();
 }
 
 QString MetricsService::fetchCurrentTime() {
@@ -228,6 +239,115 @@ double MetricsService::fetchGpuTemp() {
     }
   }
   return 0.0;
+}
+
+void MetricsService::fetchProcesses() {
+  QVariantList procList;
+  std::string path = "/proc";
+  QList<int> currentPids;
+
+  long long totalTicks = 0;
+  {
+    std::ifstream statFile("/proc/stat");
+    std::string line;
+    if (std::getline(statFile, line)) {
+      std::istringstream ss(line);
+      std::string cpu;
+      long long u, n, s, i, io, irq, sirq, st;
+      ss >> cpu >> u >> n >> s >> i >> io >> irq >> sirq >> st;
+      totalTicks = u + n + s + i + io + irq + sirq + st;
+    }
+  }
+
+  for (const auto &entry : fs::directory_iterator(path)) {
+    if (!entry.is_directory())
+      continue;
+    std::string filename = entry.path().filename().string();
+    if (!std::all_of(filename.begin(), filename.end(), ::isdigit))
+      continue;
+
+    int pid = std::stoi(filename);
+    currentPids.append(pid);
+
+    // Filter out kernel threads (empty cmdline)
+    std::ifstream cmdFile(entry.path().string() + "/cmdline");
+    std::string cmdline;
+    std::getline(cmdFile, cmdline);
+    if (cmdline.empty())
+      continue;
+
+    QVariantMap proc;
+    proc["pid"] = pid;
+
+    std::ifstream commFile(entry.path().string() + "/comm");
+    std::string name;
+    std::getline(commFile, name);
+    proc["name"] = QString::fromStdString(name);
+
+    long long rss = 0;
+    std::ifstream statusFile(entry.path().string() + "/status");
+    std::string line;
+    while (std::getline(statusFile, line)) {
+      if (line.find("VmRSS:") == 0) {
+        std::sscanf(line.c_str(), "VmRSS: %lld", &rss);
+        proc["memory"] = QString::number(rss / 1024.0, 'f', 1) + " MB";
+        proc["memVal"] = (double)rss;
+        break;
+      }
+    }
+
+    double cpuUsage = 0.0;
+    std::ifstream pStatFile(entry.path().string() + "/stat");
+    if (pStatFile.is_open()) {
+      std::string dummy;
+      long long utime, stime;
+      for (int i = 0; i < 13; ++i)
+        pStatFile >> dummy;
+      pStatFile >> utime >> stime;
+
+      long long procTicks = utime + stime;
+      if (m_prevProcessStates.contains(pid)) {
+        long long deltaProc = procTicks - m_prevProcessStates[pid].utime -
+                              m_prevProcessStates[pid].stime;
+        long long deltaTotal = totalTicks - m_prevProcessStates[pid].total;
+        if (deltaTotal > 0) {
+          cpuUsage = (double)deltaProc / deltaTotal * 100.0;
+        }
+      }
+      m_prevProcessStates[pid] = {utime, stime, totalTicks};
+    }
+    proc["cpu"] = QString::number(cpuUsage, 'f', 1) + "%";
+    proc["cpuVal"] = cpuUsage;
+
+    procList.append(proc);
+  }
+
+  // Cleanup old process states
+  for (auto it = m_prevProcessStates.begin();
+       it != m_prevProcessStates.end();) {
+    if (!currentPids.contains(it.key())) {
+      it = m_prevProcessStates.erase(it);
+    } else {
+      ++it;
+    }
+  }
+
+  // Sort by CPU usage descending, then by Memory
+  std::sort(procList.begin(), procList.end(),
+            [](const QVariant &a, const QVariant &b) {
+              QVariantMap mapA = a.toMap();
+              QVariantMap mapB = b.toMap();
+              if (mapA["cpuVal"].toDouble() != mapB["cpuVal"].toDouble())
+                return mapA["cpuVal"].toDouble() > mapB["cpuVal"].toDouble();
+              return mapA["memVal"].toDouble() > mapB["memVal"].toDouble();
+            });
+
+  if (procList.size() > 20) {
+    procList = procList.mid(0, 20);
+  }
+
+  m_processes = procList;
+  emit processesChanged();
 }
 
 double MetricsService::fetchUploadSpeed() { return m_uploadSpeed; }

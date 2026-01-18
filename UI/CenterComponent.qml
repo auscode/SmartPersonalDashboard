@@ -1,61 +1,90 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import Qt.labs.qmlmodels 1.0
 
 Pane {
+    id: centerRoot
     Layout.fillWidth: true
     Layout.fillHeight: true
     Layout.preferredWidth: 2
+   
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 6
+        spacing: 10
 
         Text {
-            text: qsTr("Top softwares running")
+            text: "TOP PROCESSES RUNNING"
+            font.bold: true
             font.pixelSize: 18
             color: "white"
             Layout.fillWidth: true
         }
 
-        TableView {
+        // Header Row
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 0
+            Rectangle { Layout.preferredWidth: 60; height: 30; color: "#333"; Text { anchors.centerIn: parent; text: "PID"; color: "#aaa"; font.bold: true } }
+            Rectangle { Layout.fillWidth: true; height: 30; color: "#333"; Text { anchors.centerIn: parent; text: "NAME"; color: "#aaa"; font.bold: true } }
+            Rectangle { Layout.preferredWidth: 100; height: 30; color: "#333"; Text { anchors.centerIn: parent; text: "MEMORY"; color: "#aaa"; font.bold: true } }
+            Rectangle { Layout.preferredWidth: 80; height: 30; color: "#333"; Text { anchors.centerIn: parent; text: "CPU"; color: "#aaa"; font.bold: true } }
+            Rectangle { Layout.preferredWidth: 150; height: 30; color: "#333"; Text { anchors.centerIn: parent; text: "ACTIONS"; color: "#aaa"; font.bold: true } }
+        }
+
+        ListView {
+            id: processList
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-
-            columnWidthProvider: function (column) {
-                return width / 5
-            }
-
-            rowHeightProvider: function (row) {
-                return 40
-            }
-
-            model: TableModel {
-                TableModelColumn { display: "name" }
-                TableModelColumn { display: "memory" }
-                TableModelColumn { display: "storage" }
-                TableModelColumn { display: "cpu" }
-                TableModelColumn { display: "action" }
-
-                rows: [
-                    { name: "Software", memory: "Memory", storage: "Storage", cpu: "CPU", action: "Action" },
-                    { name: "App 1", memory: "200MB", storage: "1GB", cpu: "5%", action: "Kill" },
-                    { name: "App 2", memory: "350MB", storage: "2GB", cpu: "8%", action: "Suspend" }
-                ]
-            }
+            model: metrics.processes
+            spacing: 2
 
             delegate: Rectangle {
-                required property var model
-                height: 40
-                color: "#2b2b2b"
-                border.color: "#555"
+                width: processList.width
+                height: 45
+                color: index % 2 === 0 ? "#1a1a1a" : "#222222"
+                radius: 4
 
-                Text {
-                    text: model.display
-                    color: "white"
-                    anchors.centerIn: parent
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 5
+                    anchors.rightMargin: 5
+                    spacing: 0
+
+                    Text { Layout.preferredWidth: 60; text: modelData.pid; color: "#888"; horizontalAlignment: Text.AlignHCenter }
+                    Text { Layout.fillWidth: true; text: modelData.name; color: "white"; font.bold: true; elide: Text.ElideRight }
+                    Text { Layout.preferredWidth: 100; text: modelData.memory; color: "#00ff00"; horizontalAlignment: Text.AlignHCenter }
+                    Text { Layout.preferredWidth: 80; text: modelData.cpu; color: "#00ccff"; horizontalAlignment: Text.AlignHCenter }
+
+                    RowLayout {
+                        Layout.preferredWidth: 150
+                        spacing: 5
+                        
+                        Button {
+                            text: "Kill"
+                            flat: true
+                            contentItem: Text { text: "Kill"; color: "#ff4444"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            background: Rectangle { color: parent.pressed ? "#331111" : "#221111"; radius: 4; border.color: "#ff4444"; border.width: 1 }
+                            onClicked: metrics.killProcess(modelData.pid)
+                        }
+
+                        Button {
+                            text: "Stop"
+                            flat: true
+                            contentItem: Text { text: "Stop"; color: "#ffaa00"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            background: Rectangle { color: parent.pressed ? "#332211" : "#221a11"; radius: 4; border.color: "#ffaa00"; border.width: 1 }
+                            onClicked: metrics.suspendProcess(modelData.pid, true)
+                        }
+                        
+                        Button {
+                            text: "Run"
+                            flat: true
+                            contentItem: Text { text: "Run"; color: "#00ff00"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            background: Rectangle { color: parent.pressed ? "#113311" : "#112211"; radius: 4; border.color: "#00ff00"; border.width: 1 }
+                            onClicked: metrics.suspendProcess(modelData.pid, false)
+                        }
+                    }
                 }
             }
         }
