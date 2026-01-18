@@ -34,6 +34,7 @@ public:
 
   Q_INVOKABLE void killProcess(int pid);
   Q_INVOKABLE void suspendProcess(int pid, bool suspend);
+  Q_INVOKABLE void toggleHardware(QString sysfsPath, bool enabled);
 
 signals:
   void currentTimeChanged();

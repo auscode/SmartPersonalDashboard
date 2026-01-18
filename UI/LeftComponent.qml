@@ -71,7 +71,7 @@ Pane {
                     Text {
                         text: modelData.available.toFixed(1) + " GB free of " + modelData.total.toFixed(1) + " GB"
                         Layout.fillWidth: true
-                        font.pixelSize: 10
+                        font.pixelSize: 12
                         color: "#888888"
                         horizontalAlignment: Text.AlignLeft
                     }

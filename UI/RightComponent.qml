@@ -71,6 +71,30 @@ Pane {
                             horizontalAlignment: Text.AlignLeft
                         }
                     }
+
+                    Switch {
+                        id: hwSwitch
+                        checked: modelData.enabled
+                        onToggled: metrics.toggleHardware(modelData.sysfsPath, checked)
+                        
+                        indicator: Rectangle {
+                            implicitWidth: 32
+                            implicitHeight: 16
+                            radius: 8
+                            color: hwSwitch.checked ? "#00ff00" : "#333333"
+                            border.color: hwSwitch.checked ? "#00ff00" : "#555555"
+
+                            Rectangle {
+                                x: hwSwitch.checked ? parent.width - width - 2 : 2
+                                y: 2
+                                width: 12
+                                height: 12
+                                radius: 6
+                                color: "white"
+                                Behavior on x { NumberAnimation { duration: 100 } }
+                            }
+                        }
+                    }
                 }
             }
         }

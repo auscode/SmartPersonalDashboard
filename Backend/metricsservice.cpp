@@ -37,6 +37,28 @@ void MetricsService::suspendProcess(int pid, bool suspend) {
   ::kill(pid, suspend ? SIGSTOP : SIGCONT);
 }
 
+void MetricsService::toggleHardware(QString sysfsPath, bool enabled) {
+  std::string path = sysfsPath.toStdString();
+  if (path.find("/sys/bus/usb/devices") != std::string::npos) {
+    std::ofstream file(path + "/authorized");
+    if (file.is_open()) {
+      file << (enabled ? "1" : "0");
+    }
+  } else if (path.find("/sys/class/input") != std::string::npos) {
+    // For input devices, we try to unbind/bind from driver
+    std::string deviceDir = path + "/device";
+    std::string driverPath = deviceDir + "/driver";
+    if (fs::exists(driverPath)) {
+      std::string deviceName = fs::read_symlink(deviceDir).filename().string();
+      if (!enabled) {
+        std::ofstream unbindFile(driverPath + "/unbind");
+        if (unbindFile.is_open())
+          unbindFile << deviceName;
+      }
+    }
+  }
+}
+
 void MetricsService::updateMetrics() {
   m_currentTime = fetchCurrentTime();
   emit currentTimeChanged();
@@ -196,6 +218,14 @@ void MetricsService::fetchHardware() {
           hw["name"] = QString::fromStdString(product);
           hw["vendor"] = QString::fromStdString(manufacturer);
           hw["type"] = "USB Device";
+          hw["sysfsPath"] = QString::fromStdString(devPath);
+
+          std::ifstream authFile(devPath + "/authorized");
+          int authorized = 1;
+          if (authFile.is_open())
+            authFile >> authorized;
+          hw["enabled"] = (authorized != 0);
+
           hwList.append(hw);
         }
       }
@@ -215,6 +245,8 @@ void MetricsService::fetchHardware() {
           QVariantMap hw;
           hw["name"] = QString::fromStdString(name);
           hw["type"] = "Peripheral";
+          hw["sysfsPath"] = QString::fromStdString(entry.path().string());
+          hw["enabled"] = fs::exists(entry.path().string() + "/device/driver");
           hwList.append(hw);
         }
       }
