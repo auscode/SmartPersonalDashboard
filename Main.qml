@@ -1,8 +1,11 @@
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+
 
 Window {
-    width: 640
-    height: 480
+    width: 1500
+    height: 800
     visible: true
     title: qsTr("Smart Personal Dashbaord")
 

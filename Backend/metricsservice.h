@@ -1,5 +1,4 @@
-#ifndef METRICSSERVICE_H
-#define METRICSSERVICE_H
+#pragma once
 
 #include <QDateTime>
 #include <QMap>
@@ -91,5 +90,3 @@ private:
   double fetchUploadSpeed();
   double fetchDownloadSpeed();
 };
-
-#endif // METRICSSERVICE_H
