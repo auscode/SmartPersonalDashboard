@@ -1,4 +1,5 @@
 #include "Backend/metricsservice.h"
+#include "Backend/FileWatcherService.h"
 #include <QCoreApplication>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -19,6 +20,11 @@ int main(int argc, char *argv[]) {
   } else {
     qCritical() << "Failed to create MetricsService!";
   }
+
+  // Create FileWatcherService and expose to QML
+  FileWatcherService fileWatcher;
+  engine.rootContext()->setContextProperty("fileWatcherService", &fileWatcher);
+  fileWatcher.start();
 
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,

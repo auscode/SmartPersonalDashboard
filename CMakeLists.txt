@@ -11,6 +11,7 @@ qt_standard_project_setup(REQUIRES 6.8)
 qt_add_executable(appSmartPersonalDashboard
     main.cpp
     Backend/metricsservice.cpp
+    Backend/FileWatcherService.cpp
 )
 
 qt_add_qml_module(appSmartPersonalDashboard
@@ -22,6 +23,7 @@ qt_add_qml_module(appSmartPersonalDashboard
         UI/RightComponent.qml
         UI/LeftComponent.qml
         UI/CenterComponent.qml
+        UI/FileWatcherTab.qml
 )
 
 # Include Backend directory
