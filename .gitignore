@@ -1,2 +1,3 @@
 build
 build/*
+test_syscall_tracer.sh
