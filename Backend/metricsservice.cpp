@@ -374,10 +374,6 @@ void MetricsService::fetchProcesses() {
               return mapA["memVal"].toDouble() > mapB["memVal"].toDouble();
             });
 
-  if (procList.size() > 20) {
-    procList = procList.mid(0, 20);
-  }
-
   m_processes = procList;
   emit processesChanged();
 }

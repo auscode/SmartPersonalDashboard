@@ -8,6 +8,21 @@ Pane {
     Layout.fillHeight: true
     Layout.preferredWidth: 2
    
+    property var localProcesses: []
+
+    Component.onCompleted: {
+        localProcesses = metrics.processes;
+    }
+
+    Connections {
+        target: metrics
+        function onProcessesChanged() {
+            // Only update if not manually paused, and not currently scrolling/flicking
+            if (!pauseButton.paused && processList.contentY <= 0 && !processList.dragging && !processList.flicking) {
+                centerRoot.localProcesses = metrics.processes;
+            }
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -19,6 +34,60 @@ Pane {
             font.pixelSize: 18
             color: "white"
             Layout.fillWidth: true
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Text {
+                text: "Search Filter:"
+                color: "#ccc"
+                font.bold: true
+                font.pixelSize: 13
+            }
+
+            TextField {
+                id: searchBar
+                Layout.fillWidth: true
+                placeholderText: "Type process name or PID to search..."
+                color: "white"
+                font.pixelSize: 13
+                padding: 8
+                background: Rectangle {
+                    color: "#1e1e1e"
+                    border.color: parent.activeFocus ? "#00ff00" : "#444"
+                    border.width: 1
+                    radius: 4
+                }
+            }
+
+            Button {
+                id: pauseButton
+                property bool paused: false
+                text: paused ? "Resume" : "Pause"
+                flat: true
+                Layout.preferredWidth: 100
+                contentItem: Text {
+                    text: pauseButton.paused ? "▶ Resume" : "⏸ Pause"
+                    color: pauseButton.paused ? "#00ff00" : "#ffaa00"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.pressed ? "#112211" : "#1a1a1a"
+                    radius: 4
+                    border.color: pauseButton.paused ? "#00ff00" : "#ffaa00"
+                    border.width: 1
+                }
+                onClicked: {
+                    paused = !paused;
+                    if (!paused) {
+                        centerRoot.localProcesses = metrics.processes;
+                    }
+                }
+            }
         }
 
         // Header Row
@@ -37,8 +106,27 @@ Pane {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            model: metrics.processes
+            model: {
+                var list = centerRoot.localProcesses;
+                var query = searchBar.text.trim().toLowerCase();
+                if (query === "") {
+                    return list;
+                }
+                var filtered = [];
+                for (var i = 0; i < list.length; i++) {
+                    var proc = list[i];
+                    if (proc.name.toLowerCase().indexOf(query) !== -1 || proc.pid.toString().indexOf(query) !== -1) {
+                        filtered.push(proc);
+                    }
+                }
+                return filtered;
+            }
             spacing: 2
+
+            ScrollBar.vertical: ScrollBar {
+                active: true
+                policy: ScrollBar.AsNeeded
+            }
 
             delegate: Rectangle {
                 width: processList.width
