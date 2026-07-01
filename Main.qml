@@ -5,11 +5,17 @@ import "UI"
 
 
 Window {
+    id: rootWindow
     width: 1500
     height: 800
     visible: true
     title: qsTr("Smart Personal Dashboard")
     color: "#121212"
+
+    function showSyscallTracer(pid, name) {
+        tabBar.currentIndex = 2;
+        syscallTracerService.attachPid(pid, name);
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -67,6 +73,25 @@ Window {
                     radius: 4
                 }
             }
+
+            TabButton {
+                text: qsTr("Syscall Tracer")
+                implicitWidth: 150
+                implicitHeight: 40
+                contentItem: Text {
+                    text: parent.text
+                    font.bold: true
+                    color: parent.checked ? "#00ff00" : "#aaaaaa"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.checked ? "#112211" : "transparent"
+                    border.color: parent.checked ? "#00ff00" : "transparent"
+                    border.width: parent.checked ? 1 : 0
+                    radius: 4
+                }
+            }
         }
 
         StackLayout {
@@ -80,6 +105,11 @@ Window {
             }
 
             FileWatcherTab {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
+
+            SyscallTracerTab {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
             }

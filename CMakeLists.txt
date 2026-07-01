@@ -12,6 +12,7 @@ qt_add_executable(appSmartPersonalDashboard
     main.cpp
     Backend/metricsservice.cpp
     Backend/FileWatcherService.cpp
+    Backend/SyscallTracerService.cpp
 )
 
 qt_add_qml_module(appSmartPersonalDashboard
@@ -24,6 +25,7 @@ qt_add_qml_module(appSmartPersonalDashboard
         UI/LeftComponent.qml
         UI/CenterComponent.qml
         UI/FileWatcherTab.qml
+        UI/SyscallTracerTab.qml
 )
 
 # Include Backend directory

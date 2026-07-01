@@ -29,7 +29,7 @@ Pane {
             Rectangle { Layout.fillWidth: true; height: 30; color: "#333"; Text { anchors.centerIn: parent; text: "NAME"; color: "#aaa"; font.bold: true } }
             Rectangle { Layout.preferredWidth: 100; height: 30; color: "#333"; Text { anchors.centerIn: parent; text: "MEMORY"; color: "#aaa"; font.bold: true } }
             Rectangle { Layout.preferredWidth: 80; height: 30; color: "#333"; Text { anchors.centerIn: parent; text: "CPU"; color: "#aaa"; font.bold: true } }
-            Rectangle { Layout.preferredWidth: 150; height: 30; color: "#333"; Text { anchors.centerIn: parent; text: "ACTIONS"; color: "#aaa"; font.bold: true } }
+            Rectangle { Layout.preferredWidth: 230; height: 30; color: "#333"; Text { anchors.centerIn: parent; text: "ACTIONS"; color: "#aaa"; font.bold: true } }
         }
 
         ListView {
@@ -58,7 +58,7 @@ Pane {
                     Text { Layout.preferredWidth: 80; text: modelData.cpu; color: "#00ccff"; horizontalAlignment: Text.AlignHCenter }
 
                     RowLayout {
-                        Layout.preferredWidth: 150
+                        Layout.preferredWidth: 230
                         spacing: 5
                         
                         Button {
@@ -83,6 +83,14 @@ Pane {
                             contentItem: Text { text: "Run"; color: "#00ff00"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             background: Rectangle { color: parent.pressed ? "#113311" : "#112211"; radius: 4; border.color: "#00ff00"; border.width: 1 }
                             onClicked: metrics.suspendProcess(modelData.pid, false)
+                        }
+
+                        Button {
+                            text: "Trace"
+                            flat: true
+                            contentItem: Text { text: "Trace"; color: "#00ccff"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            background: Rectangle { color: parent.pressed ? "#112b33" : "#11222b"; radius: 4; border.color: "#00ccff"; border.width: 1 }
+                            onClicked: rootWindow.showSyscallTracer(modelData.pid, modelData.name)
                         }
                     }
                 }
